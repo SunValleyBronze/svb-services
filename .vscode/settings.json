@@ -1,0 +1,6 @@
+{
+    "eslint.enable": true,
+    "eslint.autoFixOnSave": true,
+    "editor.tabCompletion": true,
+    "editor.quickSuggestions": false
+}
