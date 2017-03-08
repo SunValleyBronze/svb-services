@@ -1,0 +1,26 @@
+{
+    // Use IntelliSense to learn about possible Node.js debug attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "SVB Server",
+        "program": "${workspaceRoot}/src/index.js",
+        "cwd": "${workspaceRoot}",
+        "port": 8080,
+        "console": "integratedTerminal",
+        "env": {
+          "NODE_ENV": "development",
+          "DROPBOX_TOKEN": "vQ93mSgCFfIAAAAAAABOackceeKTK-sxWeXDpLBIaRuREBvSpYL2-82kiJAZfenY",
+          "AWS_ACCESS_KEY_ID": "AKIAJIIE4KJZ7MM5DO4Q",
+          "AWS_SECRET_ACCESS_KEY": "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",
+          "LOG_LEVEL": "debug"
+        },
+        "restart": true,
+        "protocol": "inspector"
+      }
+    ]
+}

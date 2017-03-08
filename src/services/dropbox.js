@@ -9,9 +9,12 @@ const winston = require('winston');
 
 // AWS configuration and functions
 aws.config.region = 'us-east-1';
+aws.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+aws.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
 const s3 = new aws.S3();
-const putObject = Promise.promisify(s3.putObject);
-const deleteObject = Promise.promisify(s3.deleteObject);
+const putObject = Promise.promisify(s3.putObject, { context: s3 });
+const deleteObject = Promise.promisify(s3.deleteObject, { context: s3 });
 
 /** Converts a path to one AWS S3 expects. */
 function toS3Path(anyPath) {
@@ -63,15 +66,15 @@ function transferFromDropboxToS3(filePath) {
         Bucket: 'sunvalleybronze.com',
         Key: s3Path,
         Body: new Buffer(response.body),
-        ContentDisposition: `inline; filename="${path.basename(event.path)}"`,
-        ContentType: mime.lookup(event.path) || 'application/octet-stream',
+        ContentDisposition: `inline; filename="${path.basename(filePath)}"`,
+        ContentType: mime.lookup(filePath) || 'application/octet-stream',
       };
 
-      winston.info(`uploading to s3: ${s3Path}`);
+      winston.info(`transferring to s3: ${s3Path}`);
       return putObject(putOptions);
     })
     .catch((err) => {
-      winston.error(`failed to upload: ${err.message}`);
+      winston.error(`failed to transfer: ${err.message}`);
     });
 }
 
@@ -82,7 +85,7 @@ function deleteFromS3(filePath) {
     Key: s3Path,
   };
 
-  winston.info(`uploading to s3: ${s3Path}`);
+  winston.info(`deleting from s3: ${s3Path}`);
   return deleteObject(delOptions)
     .catch((err) => {
       winston.error(`failed to delete ${s3Path}: ${err.message}`);
@@ -107,12 +110,12 @@ function getDropboxTree() {
 
   return rp(options).then((results) => {
     const tree = results.entries
-    .filter(entry => entry['.tag'] === 'file')
-    .map(entry => ({
-      path: entry.path_lower.slice(1),  // remove leading slash
-      modified: new Date(entry.server_modified),
-    }))
-    .reduce((obj, entry) => Object.assign({}, obj, { path: entry }), {});
+      .filter(entry => entry['.tag'] === 'file')
+      .map(entry => ({
+        path: entry.path_lower.slice(1),  // remove leading slash
+        modified: new Date(entry.server_modified),
+      }))
+      .reduce((obj, entry) => Object.assign({}, obj, { [entry.path]: entry }), {});
 
     winston.info('dropboxTree:', tree);
 
@@ -137,7 +140,7 @@ function getS3Tree() {
         }))
         .sort(comparePath)
         .reduce(
-          (obj, entry) => Object.assign({}, obj, { path: entry }),
+          (obj, entry) => Object.assign({}, obj, { [entry.path]: entry }),
           {});
 
         winston.info('s3Tree:', tree);
@@ -180,12 +183,12 @@ function synchronizeTrees(trees) {
 
   const promises = [];
   added.forEach((entry) => {
-    winston.info(`uploading new file: ${entry}`);
+    winston.info(`transferring new file: ${entry}`);
     promises.push(transferFromDropboxToS3(entry));
   });
 
   changed.forEach((entry) => {
-    winston.info(`uploading modified file: ${entry}`);
+    winston.info(`transferring modified file: ${entry}`);
     promises.push(transferFromDropboxToS3(entry));
   });
 
@@ -271,7 +274,7 @@ function getFileLink(filePath, reply) {
     const params = {
       Bucket: 'sunvalleybronze.com',
       Key: s3Path,
-      ResponseContentDisposition: `attachment; filename="${path.basename(event.path)}"`,
+      ResponseContentDisposition: `attachment; filename="${path.basename(filePath)}"`,
     };
     s3.getSignedUrl('getObject', params, (err, signedUrl) => {
       reply(null, {
@@ -324,11 +327,13 @@ function synchorizeDropboxToS3(reply) {
   Promise.all([getDropboxTree(), getS3Tree()])
   .then(synchronizeTrees)
   .then((result) => {
-    reply(null, result);
+    winston.info('synchronize succeeded:', result);
   })
   .catch((err) => {
-    reply(err);
+    winston.error('synchronize failed: ', err);
   });
+
+  reply(null, { message: 'synchronization in progress' });
 }
 
 module.exports = {
