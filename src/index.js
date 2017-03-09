@@ -50,7 +50,7 @@ router.get('/dropbox/list', (req, res) => {
   services.dropbox.listFiles(folderPath, reply(res));
 });
 
-router.get('/dropbox/recentUpdates', (req, res) => {
+router.get('/dropbox/getRecentUpdates', (req, res) => {
   const folderPath = req.query.path || req.query.folder;
   const count = req.query.count || 0;
 
