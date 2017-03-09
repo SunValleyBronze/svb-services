@@ -12,13 +12,7 @@
         "cwd": "${workspaceRoot}",
         "port": 8080,
         "console": "integratedTerminal",
-        "env": {
-          "NODE_ENV": "development",
-          "DROPBOX_TOKEN": "vQ93mSgCFfIAAAAAAABOackceeKTK-sxWeXDpLBIaRuREBvSpYL2-82kiJAZfenY",
-          "AWS_ACCESS_KEY_ID": "AKIAJIIE4KJZ7MM5DO4Q",
-          "AWS_SECRET_ACCESS_KEY": "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",
-          "LOG_LEVEL": "debug"
-        },
+        "envFile": "${workspaceRoot}/.env",
         "restart": true,
         "protocol": "inspector"
       }

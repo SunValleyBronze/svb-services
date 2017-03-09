@@ -1,5 +1,5 @@
 const aws = require('aws-sdk');
-const Promise = require('bluebird');
+const bluebird = require('bluebird');
 const mime = require('mime-types');
 const path = require('path');
 const rp = require('request-promise');
@@ -11,10 +11,9 @@ const winston = require('winston');
 aws.config.region = 'us-east-1';
 aws.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
 aws.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+aws.config.setPromisesDependency(bluebird);
 
 const s3 = new aws.S3();
-const putObject = Promise.promisify(s3.putObject, { context: s3 });
-const deleteObject = Promise.promisify(s3.deleteObject, { context: s3 });
 
 /** Converts a path to one AWS S3 expects. */
 function toS3Path(anyPath) {
@@ -57,7 +56,7 @@ function transferFromDropboxToS3(filePath) {
     resolveWithFullResponse: true,
   };
 
-  winston.info(`downloading from dropbox: ${filePath}`);
+  winston.info(`transferring from dropbox: ${filePath}`);
   return rp(getOptions)
     .then((response) => {
       const s3Path = toS3Path(filePath);
@@ -71,10 +70,11 @@ function transferFromDropboxToS3(filePath) {
       };
 
       winston.info(`transferring to s3: ${s3Path}`);
-      return putObject(putOptions);
+
+      return s3.putObject(putOptions).promise();
     })
     .catch((err) => {
-      winston.error(`failed to transfer: ${err.message}`);
+      winston.error(`failed to transfer ${filePath}: ${err.message}`);
     });
 }
 
@@ -86,7 +86,11 @@ function deleteFromS3(filePath) {
   };
 
   winston.info(`deleting from s3: ${s3Path}`);
-  return deleteObject(delOptions)
+
+  return s3.deleteObject(delOptions).promise()
+    .then((result) => {
+      winston.info(`deleted ${s3Path} with result:`, result);
+    })
     .catch((err) => {
       winston.error(`failed to delete ${s3Path}: ${err.message}`);
     });
@@ -125,7 +129,7 @@ function getDropboxTree() {
 
 /** Gets the complete tree of S3 folders and files so it can be compared to the Dropbox tree. */
 function getS3Tree() {
-  return new Promise((resolve, reject) => {
+  return new bluebird((resolve, reject) => {
     const params = {
       Bucket: 'sunvalleybronze.com',
     };
@@ -181,23 +185,23 @@ function synchronizeTrees(trees) {
   const delta = { added, changed, deleted };
   winston.info('delta:', delta);
 
+  // Queue up the transfers for new files
   const promises = [];
   added.forEach((entry) => {
-    winston.info(`transferring new file: ${entry}`);
     promises.push(transferFromDropboxToS3(entry));
   });
 
+  // Queue up the transfers for modified files
   changed.forEach((entry) => {
-    winston.info(`transferring modified file: ${entry}`);
     promises.push(transferFromDropboxToS3(entry));
   });
 
+  // Queue up the deletions
   deleted.forEach((entry) => {
-    winston.info(`deleting file: ${entry}`);
     promises.push(deleteFromS3(entry));
   });
 
-  return Promise.all(promises);
+  return bluebird.all(promises);
 }
 
 /**
@@ -324,7 +328,7 @@ function getRecentUpdates(folderPath, count, reply) {
 * @param reply - asynchronous response function
 */
 function synchorizeDropboxToS3(reply) {
-  Promise.all([getDropboxTree(), getS3Tree()])
+  bluebird.all([getDropboxTree(), getS3Tree()])
   .then(synchronizeTrees)
   .then((result) => {
     winston.info('synchronize succeeded:', result);
