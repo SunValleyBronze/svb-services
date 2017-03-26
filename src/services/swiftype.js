@@ -10,10 +10,10 @@ const winston = require('winston');
 /**
  * Instructs Swiftype to add one or more PDF documents to its index.
  *
- * @param {Array of string} urls
+ * @param documents.item.id {}
  * @param reply - asynchronous response function
  */
-function updateIndex(urls, reply) {
+function updateIndex(documents, reply) {
 
 }
 
