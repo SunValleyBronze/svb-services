@@ -155,6 +155,29 @@ function getS3Tree() {
   });
 }
 
+/** Generates the sitemap.xml document for the tree returned by getS3Tree(). */
+function generateS3Sitemap(tree) {
+  const nodes = Object.keys(tree).reduce((acc, key) =>
+    `<url><loc>http://sunvalleybronze.com.s3-website-us-east-1.amazonaws.com${key}</loc></url>`,
+  );
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${nodes}</urlset>`;
+}
+
+/** Uploads the sitemap.xml to the S3 site. */
+function uploadSitemapToS3(sitemap) {
+  const putOptions = {
+    ACL: 'public-read',
+    Bucket: 'sunvalleybronze.com',
+    Key: 'sitemap.xml',
+    Body: sitemap,
+    ContentType: 'text/xml',
+  };
+
+  winston.info('uploading sitemap.xml to S3');
+
+  return s3.putObject(putOptions).promise();
+}
+
 /**
  * Determines which files need to be transfererred or deleted from Dropbox to S3.
  *
@@ -340,9 +363,29 @@ function synchorizeDropboxToS3(reply) {
   reply(null, { message: 'synchronization in progress' });
 }
 
+/**
+ * Updates the sitemap.xml file on S3 to ensure it reflects available files.
+ *
+ * @param reply - asynchronous response function
+ */
+function updateS3Sitemap(reply) {
+  getS3Tree()
+    .then(generateS3Sitemap)
+    .then(uploadSitemapToS3)
+    .then((result) => {
+      reply(null, result);
+    })
+    .catch((err) => {
+      const message = 'failed to update sitemap:';
+      winston.error(message, err);
+      reply({ message, error: err });
+    });
+}
+
 module.exports = {
   getFileLink,
   getRecentUpdates,
   listFiles,
   synchorizeDropboxToS3,
+  updateS3Sitemap,
 };

@@ -67,6 +67,10 @@ router.get('/dropbox/synchronizeDropboxToS3', (req, res) => {
   services.dropbox.synchorizeDropboxToS3(reply(res));
 });
 
+router.get('/dropbox/updateS3Sitemap', (req, res) => {
+  services.dropbox.updateS3Sitemap(reply(res));
+});
+
 server.use(router);
 
 // -[ START THE SERVER ]---------------------------------------------------------------------------
