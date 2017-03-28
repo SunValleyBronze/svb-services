@@ -11,7 +11,7 @@
         "program": "${workspaceRoot}/src/index.js",
         "cwd": "${workspaceRoot}",
         "port": 8080,
-        "console": "integratedTerminal",
+        // "console": "integratedTerminal",
         "envFile": "${workspaceRoot}/.env",
         "restart": true,
         "protocol": "inspector"
