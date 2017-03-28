@@ -138,12 +138,12 @@ function getS3Tree() {
         reject(err);
       } else {
         const tree = data.Contents
-        .map(entry => ({
-          path: entry.Key.toLowerCase(),
-          modified: entry.LastModified,
-        }))
-        .sort(comparePath)
-        .reduce(
+          .map(entry => ({
+            path: entry.Key.toLowerCase(),
+            modified: entry.LastModified,
+          }))
+          .sort(comparePath)
+          .reduce(
           (obj, entry) => Object.assign({}, obj, { [entry.path]: entry }),
           {});
 
@@ -197,11 +197,12 @@ function synchronizeTrees(trees) {
     }
   });
 
+  const protectedFiles = ['sitemap.xml', 'robots.txt', 'index.html'];
   Object.keys(s3Tree).forEach((key) => {
-    if (key[key.length - 1] !== '/' && !dropboxTree[key] &&
-        key.indexOf('sitemap.xml') === -1 &&
-        key.indexOf('robots.txt') === -1) {
-      deleted.push(s3Tree[key].path);
+    if (key[key.length - 1] !== '/' && !dropboxTree[key]) {
+      if (protectedFiles.every(val => key.indexOf(val) === -1)) {
+        deleted.push(s3Tree[key].path);
+      }
     }
   });
 
@@ -352,13 +353,13 @@ function getRecentUpdates(folderPath, count, reply) {
 */
 function synchorizeDropboxToS3(reply) {
   bluebird.all([getDropboxTree(), getS3Tree()])
-  .then(synchronizeTrees)
-  .then((result) => {
-    winston.info('synchronize succeeded:', result);
-  })
-  .catch((err) => {
-    winston.error('synchronize failed: ', err);
-  });
+    .then(synchronizeTrees)
+    .then((result) => {
+      winston.info('synchronize succeeded:', result);
+    })
+    .catch((err) => {
+      winston.error('synchronize failed: ', err);
+    });
 
   reply(null, { message: 'synchronization in progress' });
 }
