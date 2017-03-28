@@ -199,8 +199,8 @@ function synchronizeTrees(trees) {
 
   Object.keys(s3Tree).forEach((key) => {
     if (s3Tree[key][key.length - 1] !== '/' && !dropboxTree[key] &&
-        s3Tree[key].indexOf('sitemap.xml') === -1 &&
-        s3Tree[key].indexOf('robots.txt') === -1) {
+        key.indexOf('sitemap.xml') === -1 &&
+        key.indexOf('robots.txt') === -1) {
       deleted.push(s3Tree[key].path);
     }
   });
