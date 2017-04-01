@@ -78,21 +78,20 @@ function transferFromDropboxToS3(filePath) {
     });
 }
 
-function deleteFromS3(filePath) {
-  const s3Path = toS3Path(filePath);
+function deleteFromS3(filePaths) {
   const delOptions = {
     Bucket: 'sunvalleybronze.com',
-    Key: s3Path,
+    Delete: {
+      Objects: filePaths.map(val => ({ Key: val })),
+    },
   };
 
-  winston.info(`deleting from s3: ${s3Path}`);
-
-  return s3.deleteObject(delOptions).promise()
+  return s3.deleteObjects(delOptions).promise()
     .then((result) => {
-      winston.info(`deleted ${s3Path} with result:`, result);
+      winston.info(`deleted ${filePaths.length} files with result:`, result);
     })
     .catch((err) => {
-      winston.error(`failed to delete ${s3Path}: ${err.message}`);
+      winston.error(`failed to delete ${filePaths.length} files: ${err.message}`);
     });
 }
 
@@ -200,8 +199,10 @@ function synchronizeTrees(trees) {
   const protectedFiles = ['sitemap.xml', 'robots.txt', 'index.html'];
   Object.keys(s3Tree).forEach((key) => {
     if (key[key.length - 1] !== '/' && !dropboxTree[key]) {
+      winston.debug(`${key} is not a folder and is not in dropbox...`);
       if (protectedFiles.every(val => key.indexOf(val) === -1)) {
-        deleted.push(s3Tree[key].path);
+        winston.debug('...and is not a protected file: DELETING');
+        deleted.push(key);
       }
     }
   });
@@ -221,9 +222,9 @@ function synchronizeTrees(trees) {
   });
 
   // Queue up the deletions
-  deleted.forEach((entry) => {
-    promises.push(deleteFromS3(entry));
-  });
+  if (deleted.length) {
+    promises.push(deleteFromS3(deleted));
+  }
 
   return bluebird.all(promises);
 }
@@ -355,13 +356,15 @@ function synchorizeDropboxToS3(reply) {
   bluebird.all([getDropboxTree(), getS3Tree()])
     .then(synchronizeTrees)
     .then((result) => {
-      winston.info('synchronize succeeded:', result);
+      const message = 'synchronization succeeded';
+      winston.info(message, result);
+      reply(null, { message });
     })
     .catch((err) => {
-      winston.error('synchronize failed: ', err);
+      const message = 'synchronization failed';
+      winston.error(message, err);
+      reply({ message });
     });
-
-  reply(null, { message: 'synchronization in progress' });
 }
 
 /**
