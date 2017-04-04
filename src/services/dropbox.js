@@ -164,7 +164,7 @@ function generateS3Sitemap(tree) {
 function uploadSitemapToS3(sitemap) {
   const putOptions = {
     ACL: 'public-read',
-    Bucket: 'sunvalleybronze.com',
+    Bucket: 'search.sunvalleybronze',
     Key: 'sitemap.xml',
     Body: sitemap,
     ContentType: 'text/xml',
