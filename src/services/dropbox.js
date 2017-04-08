@@ -156,7 +156,7 @@ function getS3Tree() {
 
 /** Generates the sitemap.xml document for the tree returned by getS3Tree(). */
 function generateS3Sitemap(tree) {
-  const nodes = Object.keys(tree).reduce((acc, key) => (`${acc}<url><loc>https//s3.amazon.com/sunvalleybronze.com/${encodeURIComponent(key)}</loc></url>`), '');
+  const nodes = Object.keys(tree).reduce((acc, key) => (`${acc}<url><loc>https://s3.amazon.com/sunvalleybronze.com/${encodeURIComponent(key)}</loc></url>`), '');
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${nodes}</urlset>`;
 }
 
@@ -164,7 +164,7 @@ function generateS3Sitemap(tree) {
 function uploadSitemapToS3(sitemap) {
   const putOptions = {
     ACL: 'public-read',
-    Bucket: 'search.sunvalleybronze',
+    Bucket: 'sunvalleybronze.com',
     Key: 'sitemap.xml',
     Body: sitemap,
     ContentType: 'text/xml',
