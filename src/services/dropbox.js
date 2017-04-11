@@ -1,5 +1,5 @@
 const aws = require('aws-sdk');
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const mime = require('mime-types');
 const path = require('path');
 const rp = require('request-promise');
@@ -11,7 +11,7 @@ const winston = require('winston');
 aws.config.region = 'us-east-1';
 aws.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
 aws.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-aws.config.setPromisesDependency(bluebird);
+aws.config.setPromisesDependency(Bluebird);
 
 const s3 = new aws.S3();
 
@@ -128,7 +128,7 @@ function getDropboxTree() {
 
 /** Gets the complete tree of S3 folders and files so it can be compared to the Dropbox tree. */
 function getS3Tree() {
-  return new bluebird((resolve, reject) => {
+  return new Bluebird((resolve, reject) => {
     const params = {
       Bucket: 'sunvalleybronze.com',
     };
@@ -156,7 +156,7 @@ function getS3Tree() {
 
 /** Generates the sitemap.xml document for the tree returned by getS3Tree(). */
 function generateS3Sitemap(tree) {
-  const nodes = Object.keys(tree).reduce((acc, key) => (`${acc}<url><loc>https://s3.amazonaws.com/sunvalleybronze.com/${key}</loc></url>`), '');
+  const nodes = Object.keys(tree).reduce((acc, key) => (`${acc}<url><loc>https://s3.amazonaws.com/sunvalleybronze.com/${encodeURIComponent(key)}</loc></url>`), '');
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${nodes}</urlset>`;
 }
 
@@ -226,7 +226,7 @@ function synchronizeTrees(trees) {
     promises.push(deleteFromS3(deleted));
   }
 
-  return bluebird.all(promises);
+  return Bluebird.all(promises);
 }
 
 /**
@@ -353,7 +353,7 @@ function getRecentUpdates(folderPath, count, reply) {
 * @param reply - asynchronous response function
 */
 function synchorizeDropboxToS3(reply) {
-  bluebird.all([getDropboxTree(), getS3Tree()])
+  Bluebird.all([getDropboxTree(), getS3Tree()])
     .then(synchronizeTrees)
     .then((result) => {
       const message = 'synchronization succeeded';
