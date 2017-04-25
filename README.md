@@ -8,3 +8,7 @@ The first thing you'll want to do to get up to speed is to familiarize yourself 
 * Deploying NodeJS applications to Heroku (http://www.heroku.com). If you've never used Heroku before, be sure to go through the getting started tutorial with a NodeJS app. You will need to create an account, but you won't be charged anything.
 * Working with the Dropbox API (https://www.dropbox.com/developers).
 * Working with the AWS JavaScript SDK for S3 (http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html)
+
+--
+
+Questions? Contact Seth at webdevbyseth@gmail.com.
