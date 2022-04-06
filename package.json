@@ -4,7 +4,7 @@
   "description": "Back end services for SunValleyBronze.com",
   "main": "index.js",
   "engines": {
-    "node": "10.x"
+    "node": "16.x"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,15 +12,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.22.0",
-    "bluebird": "^3.5.0",
-    "body-parser": "^1.17.1",
-    "express": "^4.15.2",
-    "mime-types": "^2.1.14",
+    "aws-sdk": "^2.1109.0",
+    "bluebird": "^3.7.2",
+    "body-parser": "^1.20.0",
+    "express": "^4.17.3",
+    "mime-types": "^2.1.35",
     "path": "^0.12.7",
-    "request": "^2.80.0",
-    "request-promise": "^4.1.1",
-    "winston": "^2.3.1"
+    "request-promise": "^4.2.6",
+    "winston": "^3.7.2"
   },
   "devDependencies": {
     "eslint": ">=4.18.2",
