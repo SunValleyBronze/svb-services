@@ -108,6 +108,7 @@ function getDropboxTree() {
     body: {
       path: '',
       recursive: true,
+      limit: 2000
     },
   };
 
