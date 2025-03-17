@@ -96,6 +96,7 @@ function deleteFromS3(filePaths) {
 }
 
 /** Gets the complete tree of Dropbox folders and files so it can be compared to the S3 tree. */
+/*
 function getDropboxTree() {
   const options = {
     url: 'https://api.dropboxapi.com/2/files/list_folder',
@@ -126,6 +127,65 @@ function getDropboxTree() {
     return tree;
   });
 }
+*/
+/** START NEW CODE: Gets the complete tree of Dropbox folders and files so it can be compared to the S3 tree. */
+async function getDropboxTree() {
+  const options = {
+    url: 'https://api.dropboxapi.com/2/files/list_folder',
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    json: true,
+    body: {
+      path: '',
+      recursive: true
+    },
+  };
+
+  let allEntries = [];
+
+  try {
+    let results = await rp(options);
+    allEntries = allEntries.concat(results.entries);
+
+    // Handle pagination using files/list_folder/continue
+    while (results.has_more) {
+      const continueOptions = {
+        url: 'https://api.dropboxapi.com/2/files/list_folder/continue',
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        json: true,
+        body: {
+          cursor: results.cursor
+        },
+      };
+
+      results = await rp(continueOptions);
+      allEntries = allEntries.concat(results.entries);
+    }
+
+    // Process entries into a structured tree
+    const tree = allEntries
+      .filter(entry => entry['.tag'] === 'file')
+      .map(entry => ({
+        path: entry.path_lower.slice(1), // remove leading slash
+        modified: new Date(entry.server_modified),
+      }))
+      .reduce((obj, entry) => Object.assign({}, obj, { [entry.path]: entry }), {});
+
+    winston.info(`Retrieved ${allEntries.length} files from Dropbox.`);
+    return tree;
+  } catch (err) {
+    winston.error(`Failed to fetch Dropbox files: ${err.message}`);
+    throw err;
+  }
+}
+/** END NEW CODE **/
 
 /** Gets the complete tree of S3 folders and files so it can be compared to the Dropbox tree. */
 function getS3Tree() {
