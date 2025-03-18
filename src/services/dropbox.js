@@ -22,7 +22,7 @@ function toS3Path(anyPath) {
 
 /** Converts a path to one Dropbox expects. */
 function toDropboxPath(anyPath) {
-  return (anyPath && anyPath[0] !== '/') ? `/${anyPath}` : anyPath;
+  return (anyPath && anyPath[0] !== '/') ? /${anyPath} : anyPath;
 }
 
 /** Comparer for alphabetizing paths in Dropbox entries. */
@@ -48,7 +48,7 @@ function transferFromDropboxToS3(filePath) {
     url: 'https://content.dropboxapi.com/2/files/download',
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
+      Authorization: Bearer ${process.env.DROPBOX_TOKEN},
       'Dropbox-API-Arg': JSON.stringify({ path: toDropboxPath(filePath) }),
     },
     gzip: true,
@@ -56,7 +56,7 @@ function transferFromDropboxToS3(filePath) {
     resolveWithFullResponse: true,
   };
 
-  winston.info(`transferring from dropbox: ${filePath}`);
+  winston.info(transferring from dropbox: ${filePath});
   return rp(getOptions)
     .then((response) => {
       const s3Path = toS3Path(filePath);
@@ -65,21 +65,20 @@ function transferFromDropboxToS3(filePath) {
         Bucket: 'sunvalleybronze.com',
         Key: s3Path,
         Body: new Buffer(response.body),
-        ContentDisposition: `inline; filename="${path.basename(filePath)}"`,
+        ContentDisposition: inline; filename="${path.basename(filePath)}",
         ContentType: mime.lookup(filePath) || 'application/octet-stream',
       };
 
-      winston.info(`transferring to s3: ${s3Path}`);
+      winston.info(transferring to s3: ${s3Path});
 
       return s3.putObject(putOptions).promise();
     })
     .catch((err) => {
-      winston.error(`failed to transfer ${filePath}: ${err.message}`);
+      winston.error(failed to transfer ${filePath}: ${err.message});
     });
 }
 
 function deleteFromS3(filePaths) {
-  
   const delOptions = {
     Bucket: 'sunvalleybronze.com',
     Delete: {
@@ -89,21 +88,20 @@ function deleteFromS3(filePaths) {
 
   return s3.deleteObjects(delOptions).promise()
     .then((result) => {
-      winston.info(`deleted ${filePaths.length} files with result:`, result);
+      winston.info(deleted ${filePaths.length} files with result:, result);
     })
     .catch((err) => {
-      winston.error(`failed to delete ${filePaths.length} files: ${err.message}`);
+      winston.error(failed to delete ${filePaths.length} files: ${err.message});
     });
 }
 
-/** Gets the complete tree of Dropbox folders and files so it can be compared to the S3 tree. */
-/*
+/** Gets the COMPLETE tree of Dropbox folders and files so it can be compared to the S3 tree. */
 function getDropboxTree() {
   const options = {
     url: 'https://api.dropboxapi.com/2/files/list_folder',
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
+      Authorization: Bearer ${process.env.DROPBOX_TOKEN},
       'Content-Type': 'application/json',
     },
     json: true,
@@ -128,72 +126,6 @@ function getDropboxTree() {
     return tree;
   });
 }
-*/
-/** START NEW CODE: **/
-/** Gets the complete tree of Dropbox folders and files so it can be compared to the S3 tree. */
-async function getDropboxTree() {
-  const options = {
-    url: 'https://api.dropboxapi.com/2/files/list_folder',
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    json: true,
-    body: {
-      path: '',
-      recursive: true,
-      limit: 2000,
-    },
-  };
-
-  let allEntries = [];
-  let totalCount = 0;
-
-  try {
-    let results = await rp(options);
-    allEntries = allEntries.concat(results.entries);
-    totalCount += results.entries.length;
-
-    // Handle pagination using files/list_folder/continue
-    while (results.has_more) {
-      const continueOptions = {
-        url: 'https://api.dropboxapi.com/2/files/list_folder/continue',
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        json: true,
-        body: {
-          cursor: results.cursor
-        },
-      };
-
-      results = await rp(continueOptions);
-      allEntries = allEntries.concat(results.entries);
-      totalCount += results.entries.length;
-    }
-
-    // Log total count of Dropbox items
-    winston.info(`Total Dropbox items retrieved: ${totalCount}`);
-
-    // Process entries into a structured tree
-    const tree = allEntries
-      .filter(entry => entry['.tag'] === 'file')
-      .map(entry => ({
-        path: entry.path_lower.slice(1), // remove leading slash
-        modified: new Date(entry.server_modified),
-      }))
-      .reduce((obj, entry) => Object.assign({}, obj, { [entry.path]: entry }), {});
-
-    return tree;
-  } catch (err) {
-    winston.error(`Failed to fetch Dropbox files: ${err.message}`);
-    throw err;
-  }
-}
-/** END NEW CODE **/
 
 /** Gets the complete tree of S3 folders and files so it can be compared to the Dropbox tree. */
 function getS3Tree() {
@@ -225,8 +157,8 @@ function getS3Tree() {
 
 /** Generates the sitemap.xml document for the tree returned by getS3Tree(). */
 function generateS3Sitemap(tree) {
-  const nodes = Object.keys(tree).reduce((acc, key) => (`${acc}<url><loc>https://s3.amazonaws.com/sunvalleybronze.com/${encodeURIComponent(key)}</loc></url>`), '');
-  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${nodes}</urlset>`;
+  const nodes = Object.keys(tree).reduce((acc, key) => (${acc}<url><loc>https://s3.amazonaws.com/sunvalleybronze.com/${encodeURIComponent(key)}</loc></url>), '');
+  return <?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${nodes}</urlset>;
 }
 
 /** Uploads the sitemap.xml to the S3 site. */
@@ -249,7 +181,6 @@ function uploadSitemapToS3(sitemap) {
  *
  * @param trees - array containing the Dropbox and S3 trees
  */
-/*** START ORIG CODE 
 function synchronizeTrees(trees) {
   const dropboxTree = trees[0];
   const s3Tree = trees[1];
@@ -269,7 +200,7 @@ function synchronizeTrees(trees) {
   const protectedFiles = ['sitemap.xml', 'robots.txt', 'index.html'];
   Object.keys(s3Tree).forEach((key) => {
     if (key[key.length - 1] !== '/' && !dropboxTree[key]) {
-      winston.debug(`${key} is not a folder and is not in dropbox...`);
+      winston.debug(${key} is not a folder and is not in dropbox...);
       if (protectedFiles.every(val => key.indexOf(val) === -1)) {
         winston.debug('...and is not a protected file: DELETING');
         deleted.push(key);
@@ -298,61 +229,6 @@ function synchronizeTrees(trees) {
 
   return Bluebird.all(promises);
 }
-END ORIG CODE ***/
-function synchronizeTrees(trees) {
-  const dropboxTree = trees[0];
-  const s3Tree = trees[1];
-
-  const added = [];
-  const changed = [];
-  const deleted = [];
-
-  // Track missing files for debugging
-  let missingFiles = [];
-
-  Object.keys(dropboxTree).forEach((key) => {
-    if (!s3Tree[key]) {
-      added.push(dropboxTree[key].path);
-    } else if (dropboxTree[key].modified > s3Tree[key].modified) {
-      changed.push(dropboxTree[key].path);
-    }
-  });
-
-  // Track files to be deleted, but verify first
-  const protectedFiles = ['sitemap.xml', 'robots.txt', 'index.html'];
-  Object.keys(s3Tree).forEach((key) => {
-    if (!dropboxTree[key] && key[key.length - 1] !== '/') {
-      if (protectedFiles.every(val => key.indexOf(val) === -1)) {
-        winston.debug(`${key} is missing in Dropbox – marking for deletion`);
-        deleted.push(key);
-      }
-    }
-  });
-
-  // 🛑 Verify before deleting
-  missingFiles = deleted.filter(file => !added.includes(file));
-  if (missingFiles.length > 0) {
-    winston.warn(`🚨 Potential sync issue: ${missingFiles.length} files are missing but not in Dropbox’s list.`);
-    winston.debug(`Missing files: ${JSON.stringify(missingFiles, null, 2)}`);
-    deleted.length = 0; // Prevent deletion until verified
-  }
-
-  // Log the sync delta
-  winston.info(`Dropbox->S3 Sync: ${added.length} added, ${changed.length} changed, ${deleted.length} deleted`);
-
-  // Execute transfers and deletions
-  const promises = [];
-  added.forEach((entry) => promises.push(transferFromDropboxToS3(entry)));
-  changed.forEach((entry) => promises.push(transferFromDropboxToS3(entry)));
-
-  // Only delete if no sync issues detected
-  if (deleted.length) {
-    promises.push(deleteFromS3(deleted));
-  }
-
-  return Bluebird.all(promises);
-}
-
 
 /**
  * Converts the entries returned by the Dropbox list_folder API to a tree of folders and files.
@@ -372,7 +248,7 @@ function formatDropboxEntries(entries, sortOrder, count) {
       id: entry.id,
       name: path.basename(entry.path_display, path.extname(entry.path_display)),
       type: path.extname(entry.path_display).toUpperCase(),
-      path: `https://s3.amazonaws.com/sunvalleybronze.com${entry.path_lower}`,
+      path: https://s3.amazonaws.com/sunvalleybronze.com${entry.path_lower},
       modified: entry.server_modified,
     }))
     .sort(sorter)
@@ -395,7 +271,7 @@ function listFiles(folderPath, reply) {
     url: 'https://api.dropboxapi.com/2/files/list_folder',
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
+      Authorization: Bearer ${process.env.DROPBOX_TOKEN},
       'Content-Type': 'application/json',
     },
     json: true,
@@ -425,11 +301,11 @@ function listFiles(folderPath, reply) {
 function getFileLink(filePath, reply) {
   if (filePath) {
     const s3Path = toS3Path(filePath.toLowerCase());
-    const url = `https://s3.amazonaws.com/sunvalleybronze.com/${s3Path}`;
+    const url = https://s3.amazonaws.com/sunvalleybronze.com/${s3Path};
     const params = {
       Bucket: 'sunvalleybronze.com',
       Key: s3Path,
-      ResponseContentDisposition: `attachment; filename="${path.basename(filePath)}"`,
+      ResponseContentDisposition: attachment; filename="${path.basename(filePath)}",
     };
     s3.getSignedUrl('getObject', params, (err, signedUrl) => {
       reply(null, {
@@ -454,14 +330,14 @@ function getRecentUpdates(folderPath, count, reply) {
     url: 'https://api.dropboxapi.com/2/files/list_folder',
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
+      Authorization: Bearer ${process.env.DROPBOX_TOKEN},
       'Content-Type': 'application/json',
     },
     json: true,
     body: {
       path: folderPath,
       recursive: true,
-      limit: 2000,
+      limit: 2000
     },
   };
 
