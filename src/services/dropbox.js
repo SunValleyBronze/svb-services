@@ -79,9 +79,6 @@ function transferFromDropboxToS3(filePath) {
 }
 
 function deleteFromS3(filePaths) {
-
-  winston.info(`S3 file count: ${Object.keys(s3Tree).length}`);
-  winston.debug(`S3 file list: ${JSON.stringify(s3Tree, null, 2)}`);
   
   const delOptions = {
     Bucket: 'sunvalleybronze.com',
@@ -145,7 +142,8 @@ async function getDropboxTree() {
     json: true,
     body: {
       path: '',
-      recursive: true
+      recursive: true,
+      limit: 2000,
     },
   };
 
@@ -179,8 +177,6 @@ async function getDropboxTree() {
 
     // Log total count of Dropbox items
     winston.info(`Total Dropbox items retrieved: ${totalCount}`);
-    winston.info(`Dropbox file count: ${Object.keys(tree).length}`);
-    winston.debug(`Dropbox file list: ${JSON.stringify(tree, null, 2)}`);
 
     // Process entries into a structured tree
     const tree = allEntries
@@ -406,6 +402,7 @@ function listFiles(folderPath, reply) {
     body: {
       path: toDropboxPath(folderPath),
       recursive: false,
+      limit: 2000
     },
   };
 
@@ -464,6 +461,7 @@ function getRecentUpdates(folderPath, count, reply) {
     body: {
       path: folderPath,
       recursive: true,
+      limit: 2000,
     },
   };
 
