@@ -79,6 +79,10 @@ function transferFromDropboxToS3(filePath) {
 }
 
 function deleteFromS3(filePaths) {
+
+  winston.info(`S3 file count: ${Object.keys(s3Tree).length}`);
+  winston.debug(`S3 file list: ${JSON.stringify(s3Tree, null, 2)}`);
+  
   const delOptions = {
     Bucket: 'sunvalleybronze.com',
     Delete: {
@@ -175,6 +179,8 @@ async function getDropboxTree() {
 
     // Log total count of Dropbox items
     winston.info(`Total Dropbox items retrieved: ${totalCount}`);
+    winston.info(`Dropbox file count: ${Object.keys(tree).length}`);
+    winston.debug(`Dropbox file list: ${JSON.stringify(tree, null, 2)}`);
 
     // Process entries into a structured tree
     const tree = allEntries
@@ -247,6 +253,7 @@ function uploadSitemapToS3(sitemap) {
  *
  * @param trees - array containing the Dropbox and S3 trees
  */
+/*** START ORIG CODE 
 function synchronizeTrees(trees) {
   const dropboxTree = trees[0];
   const s3Tree = trees[1];
@@ -295,6 +302,61 @@ function synchronizeTrees(trees) {
 
   return Bluebird.all(promises);
 }
+END ORIG CODE ***/
+function synchronizeTrees(trees) {
+  const dropboxTree = trees[0];
+  const s3Tree = trees[1];
+
+  const added = [];
+  const changed = [];
+  const deleted = [];
+
+  // Track missing files for debugging
+  let missingFiles = [];
+
+  Object.keys(dropboxTree).forEach((key) => {
+    if (!s3Tree[key]) {
+      added.push(dropboxTree[key].path);
+    } else if (dropboxTree[key].modified > s3Tree[key].modified) {
+      changed.push(dropboxTree[key].path);
+    }
+  });
+
+  // Track files to be deleted, but verify first
+  const protectedFiles = ['sitemap.xml', 'robots.txt', 'index.html'];
+  Object.keys(s3Tree).forEach((key) => {
+    if (!dropboxTree[key] && key[key.length - 1] !== '/') {
+      if (protectedFiles.every(val => key.indexOf(val) === -1)) {
+        winston.debug(`${key} is missing in Dropbox – marking for deletion`);
+        deleted.push(key);
+      }
+    }
+  });
+
+  // 🛑 Verify before deleting
+  missingFiles = deleted.filter(file => !added.includes(file));
+  if (missingFiles.length > 0) {
+    winston.warn(`🚨 Potential sync issue: ${missingFiles.length} files are missing but not in Dropbox’s list.`);
+    winston.debug(`Missing files: ${JSON.stringify(missingFiles, null, 2)}`);
+    deleted.length = 0; // Prevent deletion until verified
+  }
+
+  // Log the sync delta
+  winston.info(`Dropbox->S3 Sync: ${added.length} added, ${changed.length} changed, ${deleted.length} deleted`);
+
+  // Execute transfers and deletions
+  const promises = [];
+  added.forEach((entry) => promises.push(transferFromDropboxToS3(entry)));
+  changed.forEach((entry) => promises.push(transferFromDropboxToS3(entry)));
+
+  // Only delete if no sync issues detected
+  if (deleted.length) {
+    promises.push(deleteFromS3(deleted));
+  }
+
+  return Bluebird.all(promises);
+}
+
 
 /**
  * Converts the entries returned by the Dropbox list_folder API to a tree of folders and files.
