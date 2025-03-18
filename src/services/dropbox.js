@@ -128,7 +128,8 @@ function getDropboxTree() {
   });
 }
 */
-/** START NEW CODE: Gets the complete tree of Dropbox folders and files so it can be compared to the S3 tree. */
+/** START NEW CODE: **/
+/** Gets the complete tree of Dropbox folders and files so it can be compared to the S3 tree. */
 async function getDropboxTree() {
   const options = {
     url: 'https://api.dropboxapi.com/2/files/list_folder',
@@ -145,10 +146,12 @@ async function getDropboxTree() {
   };
 
   let allEntries = [];
+  let totalCount = 0;
 
   try {
     let results = await rp(options);
     allEntries = allEntries.concat(results.entries);
+    totalCount += results.entries.length;
 
     // Handle pagination using files/list_folder/continue
     while (results.has_more) {
@@ -167,7 +170,11 @@ async function getDropboxTree() {
 
       results = await rp(continueOptions);
       allEntries = allEntries.concat(results.entries);
+      totalCount += results.entries.length;
     }
+
+    // Log total count of Dropbox items
+    winston.info(`Total Dropbox items retrieved: ${totalCount}`);
 
     // Process entries into a structured tree
     const tree = allEntries
@@ -178,7 +185,6 @@ async function getDropboxTree() {
       }))
       .reduce((obj, entry) => Object.assign({}, obj, { [entry.path]: entry }), {});
 
-    winston.info(`Retrieved ${allEntries.length} files from Dropbox.`);
     return tree;
   } catch (err) {
     winston.error(`Failed to fetch Dropbox files: ${err.message}`);
