@@ -53,7 +53,7 @@ function transferFromDropboxToS3(filePath) {
     },
     gzip: true,
     encoding: null,
-    resolveWithFullResponse: true
+    resolveWithFullResponse: true,
   };
 
   winston.info(transferring from dropbox: ${filePath});
