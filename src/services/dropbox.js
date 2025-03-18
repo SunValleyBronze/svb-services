@@ -101,7 +101,7 @@ function getDropboxTree() {
     url: 'https://api.dropboxapi.com/2/files/list_folder',
     method: 'POST',
     headers: {
-      Authorization: Bearer ${process.env.DROPBOX_TOKEN},
+      Authorization: `Bearer ${process.env.DROPBOX_TOKEN}`,
       'Content-Type': 'application/json',
     },
     json: true,
@@ -112,20 +112,49 @@ function getDropboxTree() {
     },
   };
 
-  return rp(options).then((results) => {
-    const tree = results.entries
+  async function fetchAllEntries(cursor = null, accumulatedEntries = []) {
+    let apiUrl = cursor
+      ? 'https://api.dropboxapi.com/2/files/list_folder/continue'
+      : 'https://api.dropboxapi.com/2/files/list_folder';
+
+    let body = cursor ? { cursor } : options.body;
+
+    try {
+      const response = await rp({
+        url: apiUrl,
+        method: 'POST',
+        headers: options.headers,
+        json: true,
+        body,
+      });
+
+      accumulatedEntries.push(...response.entries);
+
+      if (response.has_more) {
+        return fetchAllEntries(response.cursor, accumulatedEntries);
+      } else {
+        return accumulatedEntries;
+      }
+    } catch (error) {
+      winston.error(`Failed to fetch Dropbox entries: ${error.message}`);
+      throw error;
+    }
+  }
+
+  return fetchAllEntries().then((entries) => {
+    const tree = entries
       .filter(entry => entry['.tag'] === 'file')
       .map(entry => ({
         path: entry.path_lower.slice(1),  // remove leading slash
         modified: new Date(entry.server_modified),
       }))
-      .reduce((obj, entry) => Object.assign({}, obj, { [entry.path]: entry }), {});
+      .reduce((obj, entry) => ({ ...obj, [entry.path]: entry }), {});
 
     winston.info('dropboxTree:', tree);
-
     return tree;
   });
 }
+
 
 /** Gets the complete tree of S3 folders and files so it can be compared to the Dropbox tree. */
 function getS3Tree() {
