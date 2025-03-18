@@ -108,7 +108,7 @@ function getDropboxTree() {
     body: {
       path: '',
       recursive: true,
-      limit: 2000
+      limit: 1000
     },
   };
 
@@ -307,7 +307,7 @@ function listFiles(folderPath, reply) {
     body: {
       path: toDropboxPath(folderPath),
       recursive: false,
-      limit: 2000
+      limit: 1000
     },
   };
 
@@ -366,7 +366,7 @@ function getRecentUpdates(folderPath, count, reply) {
     body: {
       path: folderPath,
       recursive: true,
-      limit: 2000
+      limit: 50
     },
   };
 
