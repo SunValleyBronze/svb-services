@@ -11,4 +11,4 @@ The first thing you'll want to do to get up to speed is to familiarize yourself 
 
 --
 
-Questions? Contact Seth at webdevbyseth@gmail.com.
+
