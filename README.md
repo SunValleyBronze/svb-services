@@ -1,4 +1,4 @@
-# SunValleyBronze.com Back End Services
+# SunValleyBronze.com Back End Services: Dropbox Files -> AWS S3 Bucket -> Display on website
 
 This is a relatively simple Node application running the Express web server. It accepts incoming requests via the routes in src/index.js and provides responses using the services in the src/services folder.
 
